@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OmniCrawl Studio — Universal Local-First Multi-Platform Web Crawler</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
+
+  <!-- Top Navbar -->
+  <header class="border-b border-slate-800 bg-slate-900/85 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 font-bold text-xl">
+          ⚡
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            OmniCrawl Studio
+            <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              Zero-Server Storage
+            </span>
+            <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+              Load-Balanced Engine
+            </span>
+          </h1>
+          <p class="text-xs text-slate-400">Universal Multi-Platform Web Data Crawler (Research • Social Media • Web Search • Marketplace • Custom URL)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="text-xs bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          <span>Browser Storage: <strong id="localCountBadge">0</strong> record</span>
+        </div>
+        <button onclick="clearLocalStorageData()" class="text-xs px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition">
+          🗑️ Reset Storage
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+
+    <!-- Top Telemetry & Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <p class="text-xs text-slate-400 uppercase tracking-wider">Total Dataset di Browser</p>
+        <p id="statTotal" class="text-2xl font-bold text-white mt-1">0</p>
+        <p class="text-xs text-slate-500 mt-1">Tersimpan di LocalStorage klien</p>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <p class="text-xs text-slate-400 uppercase tracking-wider">Lolos Filter & Relevansi</p>
+        <p id="statMatched" class="text-2xl font-bold text-emerald-400 mt-1">0</p>
+        <p class="text-xs text-slate-500 mt-1">BM25 + Heuristic Score ≥ Threshold</p>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <p class="text-xs text-slate-400 uppercase tracking-wider">Deduplikasi & Kecepatan</p>
+        <p id="statDedup" class="text-lg font-bold text-cyan-400 mt-1">0 duplikat dihapus</p>
+        <p id="statLatency" class="text-xs text-slate-500 mt-1">SHA-256 O(1) Fingerprinting</p>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <p class="text-xs text-slate-400 uppercase tracking-wider">Load Balancer Workers</p>
+        <div id="workerPills" class="flex flex-wrap gap-1.5 mt-2">
+          <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">4 Worker Nodes Ready</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left Control Panel (4 cols) -->
+      <div class="lg:col-span-4 space-y-5">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+              <span>🎛️</span> Universal Crawl Config
+            </h2>
+          </div>
+
+          <!-- Preset Templates -->
+          <div class="mb-4">
+            <label class="block text-xs text-slate-400 mb-1.5">Pilih Preset Skenario Cepat:</label>
+            <div class="grid grid-cols-2 gap-1.5">
+              <button onclick="applyPreset('research')" class="text-left px-2.5 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[11px] text-indigo-300 font-medium transition">
+                🔬 Riset & Jurnal
+              </button>
+              <button onclick="applyPreset('market_web')" class="text-left px-2.5 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-[11px] text-cyan-300 font-medium transition">
+                🌐 Web & Tren Berita
+              </button>
+              <button onclick="applyPreset('social_media')" class="text-left px-2.5 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-[11px] text-purple-300 font-medium transition">
+                📱 Media Sosial
+              </button>
+              <button onclick="applyPreset('property_kos')" class="text-left px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[11px] text-emerald-300 font-medium transition">
+                🏠 Properti & Kos
+              </button>
+            </div>
+          </div>
+
+          <!-- Universal Search Query -->
+          <div class="mb-4">
+            <label class="block text-xs font-semibold text-slate-300 mb-1">1. Kueri / Topik Pencarian Universal</label>
+            <input id="queryInput" type="text" value="Large Language Models Medical Diagnosis"
+              placeholder="Ketik topik riset, produk, berita, atau lokasi..."
+              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none" />
+          </div>
+
+          <!-- Multi-Domain Platform Selector -->
+          <div class="mb-4 space-y-2.5">
+            <label class="block text-xs font-semibold text-slate-300">2. Pilih Platform Lintas Kategori</label>
+
+            <!-- Category: Research -->
+            <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800">
+              <div class="text-[11px] font-semibold text-indigo-400 mb-1.5">🔬 Research & Academic Platforms</div>
+              <div class="grid grid-cols-3 gap-1.5 text-xs">
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" name="platform" value="openalex" checked class="rounded text-indigo-500" />
+                  <span>OpenAlex</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" name="platform" value="arxiv" checked class="rounded text-indigo-500" />
+                  <span>arXiv.org</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" name="platform" value="wikipedia" class="rounded text-indigo-500" />
+                  <span>Wikipedia</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Category: Web Search & Custom URL -->
+            <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800">
+              <div class="text-[11px] font-semibold text-cyan-400 mb-1.5">🌐 Search Engine & Custom Web</div>
+              <div class="grid grid-cols-2 gap-1.5 text-xs">
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" name="platform" value="duckduckgo" checked class="rounded text-cyan-500" />
+                  <span>DuckDuckGo Web</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" name="platform" value="custom_url" class="rounded text-cyan-500" />
+                  <span>Custom URL List</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Category: Social Media -->
+            <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800">
+              <div class="text-[11px] font-semibold text-purple-400 mb-1.5">📱 Social Media & Community</div>
+              <div class="grid grid-cols-3 gap-1.5 text-xs">
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" name="platform" value="reddit" class="rounded text-purple-500" />
+                  <span>Reddit</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" name="platform" value="threads" class="rounded text-purple-500" />
+                  <span>Threads</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" name="platform" value="facebook" class="rounded text-purple-500" />
+                  <span>Facebook</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" name="platform" value="instagram" class="rounded text-purple-500" />
+                  <span>Instagram</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" name="platform" value="tiktok" class="rounded text-purple-500" />
+                  <span>TikTok</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Category: Marketplace & Directories -->
+            <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800">
+              <div class="text-[11px] font-semibold text-emerald-400 mb-1.5">🏠 Property & Directory Portals</div>
+              <div class="grid grid-cols-2 gap-1.5 text-xs">
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" name="platform" value="direktori" class="rounded text-emerald-500" />
+                  <span>Direktori Web</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" name="platform" value="mamikos" class="rounded text-emerald-500" />
+                  <span>Mamikos</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Filtering Rules -->
+          <div class="space-y-3 mb-4">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Kata Kunci Boost / Wajib Ada (pisahkan koma)</label>
+              <input id="mustIncludeInput" type="text" value="model, clinical, learning"
+                placeholder="Contoh: machine learning, python, murah, putri"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-indigo-500 focus:outline-none" />
+            </div>
+
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Kata Kunci Pengecualian / Exclude (pisahkan koma)</label>
+              <input id="excludeInput" type="text" value=""
+                placeholder="Contoh: hoax, iklan, khusus putra"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-indigo-500 focus:outline-none" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Nilai/Tahun/Harga Min</label>
+                <input id="minValInput" type="number" placeholder="Opsional (mis: 2021)"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-indigo-500 focus:outline-none" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Nilai/Tahun/Harga Max</label>
+                <input id="maxValInput" type="number" placeholder="Opsional (mis: 2026)"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-indigo-500 focus:outline-none" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Maks Data / Platform</label>
+                <input id="maxResultsInput" type="number" value="15" min="3" max="50"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Min Skor Relevansi (%)</label>
+                <input id="minScoreInput" type="number" value="40" min="0" max="95"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Custom URLs (jika memilih Custom URL, pisahkan koma)</label>
+              <input id="customUrlsInput" type="text" placeholder="https://example.com, https://news.ycombinator.com"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <!-- Execute Buttons -->
+          <div class="space-y-2">
+            <button id="btnStartCrawl" onclick="startUniversalCrawl()"
+              class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/25 transition flex items-center justify-center gap-2">
+              <span>🚀</span> Jalankan Universal Crawler
+            </button>
+            <button onclick="runInstantSample()"
+              class="w-full py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs border border-slate-700 transition flex items-center justify-center gap-2">
+              <span>🧪</span> Muat Sampel Multi-Domain (Demo Instan)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Live Telemetry Console & Universal Data Table (8 cols) -->
+      <div class="lg:col-span-8 space-y-5">
+
+        <!-- Live Execution & Load Balancer Console -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              Load Balancer & Pipeline Telemetry Stream (WebSocket)
+            </span>
+            <span id="progressText" class="text-xs text-cyan-400 font-mono">Idle</span>
+          </div>
+          <div id="logConsole" class="bg-slate-950 border border-slate-800/80 rounded-xl p-3 h-32 overflow-y-auto font-mono text-xs text-slate-300 space-y-1">
+            <div class="text-slate-500">[SYSTEM] OmniCrawl Studio siap. Weighted Least-Connections Load Balancer & Token Bucket aktif.</div>
+          </div>
+        </div>
+
+        <!-- Universal Results Table -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <!-- Tabs -->
+            <div class="flex flex-wrap items-center gap-1.5">
+              <button id="tabMatched" onclick="setFilterTab('matched')"
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition">
+                ⭐ Lolos Relevansi (<span id="countMatchedTab">0</span>)
+              </button>
+              <button id="tabAll" onclick="setFilterTab('all')"
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+                📋 Semua Data (<span id="countAllTab">0</span>)
+              </button>
+              <select id="categoryFilter" onchange="renderTable()"
+                class="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none">
+                <option value="all">Semua Kategori</option>
+                <option value="research">🔬 Research & Academic</option>
+                <option value="web_search">🌐 Web Search</option>
+                <option value="social">📱 Social Media</option>
+                <option value="marketplace">🏠 Marketplace & Directory</option>
+                <option value="custom">🔗 Custom URL</option>
+              </select>
+            </div>
+
+            <!-- Export Actions -->
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="downloadFile('excel')"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition">
+                📥 Download Excel (.xlsx)
+              </button>
+              <button onclick="downloadFile('csv')"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 transition">
+                📄 Download CSV
+              </button>
+              <button onclick="saveWithFilePicker()"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 transition">
+                💾 Simpan ke Folder Lokal
+              </button>
+            </div>
+          </div>
+
+          <!-- Instant Search Input -->
+          <div class="mb-4">
+            <input id="searchTableInput" oninput="renderTable()" type="text"
+              placeholder="🔍 Filter instan berdasarkan judul, penulis, abstrak, DOI, nomor kontak, atau kata kunci..."
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none" />
+          </div>
+
+          <!-- Table -->
+          <div class="overflow-x-auto border border-slate-800 rounded-xl">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-950/90 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                  <th class="py-3 px-3">Skor</th>
+                  <th class="py-3 px-3">Platform</th>
+                  <th class="py-3 px-3">Judul & Penulis / Tanggal</th>
+                  <th class="py-3 px-3">Metrik / Tahun / Harga</th>
+                  <th class="py-3 px-3">Entitas (Kontak / DOI / Tag)</th>
+                  <th class="py-3 px-3">Ringkasan Konten</th>
+                  <th class="py-3 px-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="resultsTableBody" class="divide-y divide-slate-800/70 text-xs">
+                <tr>
+                  <td colspan="7" class="py-10 text-center text-slate-500">
+                    Belum ada data di penyimpanan browser. Pilih skenario di kiri lalu klik <strong>"Jalankan Universal Crawler"</strong>.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'omnicrawl_universal_records_v2';
+    let allItems = [];
+    let activeTab = 'matched';
+    let presetsData = {};
+
+    function appendLog(msg, level = 'info') {
+      const consoleEl = document.getElementById('logConsole');
+      const div = document.createElement('div');
+      const time = new Date().toLocaleTimeString('id-ID');
+      const color = level === 'error' ? 'text-rose-400' : (level === 'success' ? 'text-emerald-400' : 'text-slate-300');
+      div.className = color;
+      div.textContent = `[${time}] ${msg}`;
+      consoleEl.appendChild(div);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function updateTelemetryUI(telemetry) {
+      if (!telemetry || !telemetry.workers) return;
+      const container = document.getElementById('workerPills');
+      container.innerHTML = telemetry.workers.map(w => {
+        const isActive = w.active > 0;
+        const badge = isActive
+          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+          : 'bg-slate-800 text-slate-300 border-slate-700';
+        return `<span class="text-[10px] px-2 py-0.5 rounded border font-mono ${badge}" title="Weight: ${w.weight}">
+          ${w.id}: ${w.completed} job (${w.avg_latency_ms}ms)
+        </span>`;
+      }).join('');
+    }
+
+    function applyPreset(presetKey) {
+      const p = presetsData[presetKey];
+      if (!p) return;
+      document.getElementById('queryInput').value = p.query || '';
+      document.getElementById('mustIncludeInput').value = (p.must_include || []).join(', ');
+      document.getElementById('excludeInput').value = (p.exclude_keywords || []).join(', ');
+      document.getElementById('minValInput').value = p.min_value !== null && p.min_value !== undefined ? p.min_value : '';
+      document.getElementById('maxValInput').value = p.max_value !== null && p.max_value !== undefined ? p.max_value : '';
+
+      document.querySelectorAll('input[name="platform"]').forEach(cb => {
+        cb.checked = (p.platforms || []).includes(cb.value);
+      });
+      appendLog(`Preset diterapkan: ${p.name}`, 'info');
+    }
+
+    function loadFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) allItems = JSON.parse(raw);
+      } catch (e) {
+        console.error(e);
+      }
+      updateStatsAndTable();
+    }
+
+    function saveToLocalStorage(items) {
+      const map = new Map();
+      for (const it of allItems) map.set(it.id_record, it);
+      for (const it of items) map.set(it.id_record, it);
+      allItems = Array.from(map.values()).sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allItems));
+      updateStatsAndTable();
+    }
+
+    function clearLocalStorageData() {
+      localStorage.removeItem(STORAGE_KEY);
+      allItems = [];
+      updateStatsAndTable();
+      appendLog('Penyimpanan browser (LocalStorage) berhasil dikosongkan.', 'info');
+    }
+
+    function removeItem(idRecord) {
+      allItems = allItems.filter(it => it.id_record !== idRecord);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allItems));
+      updateStatsAndTable();
+    }
+
+    function getFilteredItems() {
+      const q = (document.getElementById('searchTableInput').value || '').toLowerCase();
+      const cat = document.getElementById('categoryFilter').value;
+      const minScore = parseInt(document.getElementById('minScoreInput').value || '40', 10);
+
+      return allItems.filter(it => {
+        if (activeTab === 'matched' && (it.relevance_score || 0) < minScore) return false;
+        if (cat !== 'all' && it.category !== cat) return false;
+        if (q) {
+          const hay = `${it.title || ''} ${it.raw_content || ''} ${it.author || ''} ${(it.contacts || []).join(' ')} ${(it.identifiers || []).join(' ')} ${it.platform || ''}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+
+    function setFilterTab(tab) {
+      activeTab = tab;
+      document.getElementById('tabMatched').className = tab === 'matched'
+        ? 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition'
+        : 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+      document.getElementById('tabAll').className = tab === 'all'
+        ? 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition'
+        : 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+      renderTable();
+    }
+
+    function updateStatsAndTable() {
+      const minScore = parseInt(document.getElementById('minScoreInput').value || '40', 10);
+      const matched = allItems.filter(it => (it.relevance_score || 0) >= minScore);
+
+      document.getElementById('statTotal').textContent = allItems.length;
+      document.getElementById('localCountBadge').textContent = allItems.length;
+      document.getElementById('statMatched').textContent = matched.length;
+      document.getElementById('countMatchedTab').textContent = matched.length;
+      document.getElementById('countAllTab').textContent = allItems.length;
+
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('resultsTableBody');
+      const rows = getFilteredItems();
+
+      if (!rows.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-10 text-center text-slate-500">
+              Tidak ada record yang cocok pada filter ini.
+            </td>
+          </tr>`;
+        return;
+      }
+
+      const categoryBadges = {
+        research: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
+        web_search: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
+        social: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
+        marketplace: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+        custom: 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+      };
+
+      tbody.innerHTML = rows.map(it => {
+        const scoreColor = it.relevance_score >= 75
+          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+          : (it.relevance_score >= 45 ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-rose-500/20 text-rose-300 border-rose-500/30');
+
+        const catBadge = categoryBadges[it.category] || 'bg-slate-800 text-slate-300 border-slate-700';
+        const entities = [...(it.contacts || []), ...(it.identifiers || [])];
+        const entityHtml = entities.length
+          ? entities.slice(0, 3).map(e => `<span class="inline-block px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-mono text-slate-200 mr-1 mb-1">${e}</span>`).join('')
+          : '<span class="text-slate-600">-</span>';
+
+        const snippet = (it.raw_content || '').replace(/\s+/g, ' ').slice(0, 130) + '...';
+
+        return `
+          <tr class="hover:bg-slate-800/40 transition align-top">
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded-md border text-[11px] font-bold ${scoreColor}">
+                ${it.relevance_score}%
+              </span>
+            </td>
+            <td class="py-3 px-3">
+              <div class="font-bold uppercase text-slate-200 text-[11px]">${it.platform}</div>
+              <span class="inline-block mt-1 px-1.5 py-0.5 rounded border text-[10px] ${catBadge}">${it.category}</span>
+            </td>
+            <td class="py-3 px-3 max-w-xs">
+              <div class="font-semibold text-white leading-snug">${it.title || '-'}</div>
+              <div class="text-[11px] text-slate-400 mt-0.5">${it.author || 'Anonim'} ${it.published_date ? '• ' + it.published_date : ''}</div>
+            </td>
+            <td class="py-3 px-3 font-semibold text-emerald-400 whitespace-nowrap">
+              ${it.numeric_label || '<span class="text-slate-500">-</span>'}
+            </td>
+            <td class="py-3 px-3 max-w-[180px]">${entityHtml}</td>
+            <td class="py-3 px-3 max-w-sm text-slate-400 text-[11px]" title="${(it.raw_content || '').replace(/"/g, '&quot;')}">
+              ${snippet}
+            </td>
+            <td class="py-3 px-3 text-right whitespace-nowrap space-x-1">
+              <a href="${it.url}" target="_blank" class="px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 text-[11px]">
+                🔗 Sumber
+              </a>
+              <button onclick="removeItem('${it.id_record}')" class="px-2 py-1 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-[11px]">
+                ✕
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        presetsData = data.presets || {};
+        updateTelemetryUI(data.telemetry);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function runInstantSample() {
+      appendLog('Memuat sampel data multi-domain (OpenAlex, arXiv, Reddit, Direktori)...', 'info');
+      try {
+        const res = await fetch('/api/crawl/sample', { method: 'POST' });
+        const data = await res.json();
+        saveToLocalStorage(data.items || []);
+        updateTelemetryUI(data.telemetry);
+        appendLog(`Berhasil memuat ${data.total} data lintas kategori ke penyimpanan browser!`, 'success');
+      } catch (e) {
+        appendLog(`Error: ${e.message}`, 'error');
+      }
+    }
+
+    function startUniversalCrawl() {
+      const checkedPlatforms = Array.from(document.querySelectorAll('input[name="platform"]:checked')).map(el => el.value);
+      if (!checkedPlatforms.length) {
+        alert('Pilih minimal 1 platform terlebih dahulu!');
+        return;
+      }
+
+      const minValRaw = document.getElementById('minValInput').value;
+      const maxValRaw = document.getElementById('maxValInput').value;
+
+      const payload = {
+        query: document.getElementById('queryInput').value.trim(),
+        platforms: checkedPlatforms,
+        max_results_per_platform: parseInt(document.getElementById('maxResultsInput').value || '15', 10),
+        must_include: document.getElementById('mustIncludeInput').value.split(',').map(s => s.trim()).filter(Boolean),
+        exclude_keywords: document.getElementById('excludeInput').value.split(',').map(s => s.trim()).filter(Boolean),
+        min_value: minValRaw !== '' ? parseFloat(minValRaw) : null,
+        max_value: maxValRaw !== '' ? parseFloat(maxValRaw) : null,
+        custom_urls: document.getElementById('customUrlsInput').value.split(',').map(s => s.trim()).filter(Boolean),
+        min_score_threshold: parseInt(document.getElementById('minScoreInput').value || '40', 10),
+        headless: true
+      };
+
+      const btn = document.getElementById('btnStartCrawl');
+      btn.disabled = true;
+      btn.classList.add('opacity-60');
+      document.getElementById('progressText').textContent = 'Load Balancing...';
+
+      const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const ws = new WebSocket(`${proto}://${window.location.host}/ws/crawl`);
+
+      ws.onopen = () => ws.send(JSON.stringify(payload));
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.telemetry) updateTelemetryUI(msg.telemetry);
+
+        if (msg.type === 'log') {
+          appendLog(msg.message, 'info');
+        } else if (msg.type === 'progress') {
+          document.getElementById('progressText').textContent = `Completed ${msg.step}/${msg.total_steps}`;
+          appendLog(msg.message, 'info');
+        } else if (msg.type === 'error') {
+          appendLog(msg.message, 'error');
+        } else if (msg.type === 'complete') {
+          saveToLocalStorage(msg.items || []);
+          document.getElementById('statDedup').textContent = `${msg.duplicates_removed || 0} duplikat dihapus`;
+          document.getElementById('statLatency').textContent = `Waktu eksekusi paralel: ${msg.elapsed_seconds}s`;
+          appendLog(msg.message, 'success');
+          document.getElementById('progressText').textContent = `Done (${msg.elapsed_seconds}s)`;
+          btn.disabled = false;
+          btn.classList.remove('opacity-60');
+          ws.close();
+        }
+      };
+
+      ws.onerror = () => {
+        appendLog('Koneksi WebSocket terputus.', 'error');
+        btn.disabled = false;
+        btn.classList.remove('opacity-60');
+      };
+    }
+
+    async function downloadFile(format) {
+      const itemsToExport = getFilteredItems();
+      if (!itemsToExport.length) {
+        alert('Tidak ada data pada tabel untuk diekspor!');
+        return;
+      }
+      const endpoint = format === 'excel' ? '/api/export/excel' : '/api/export/csv';
+      appendLog(`Men-stream file ${format.toUpperCase()} (${itemsToExport.length} baris) langsung ke browser Anda...`, 'info');
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: itemsToExport, filename: `omnicrawl_${activeTab}` })
+        });
+        if (!res.ok) throw new Error('Gagal mengekspor file');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const ext = format === 'excel' ? 'xlsx' : 'csv';
+        a.download = `omnicrawl_${activeTab}_${Date.now()}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        appendLog(`File .${ext} berhasil diunduh tanpa membebani storage server!`, 'success');
+      } catch (e) {
+        appendLog(`Error: ${e.message}`, 'error');
+      }
+    }
+
+    async function saveWithFilePicker() {
+      const itemsToExport = getFilteredItems();
+      if (!itemsToExport.length) {
+        alert('Tidak ada data pada tabel untuk disimpan!');
+        return;
+      }
+      try {
+        if ('showSaveFilePicker' in window) {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: `omnicrawl_dataset_${Date.now()}.json`,
+            types: [{ description: 'JSON Dataset', accept: { 'application/json': ['.json'] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(JSON.stringify(itemsToExport, null, 2));
+          await writable.close();
+          appendLog('Dataset berhasil disimpan langsung ke folder lokal pilihan Anda!', 'success');
+        } else {
+          const blob = new Blob([JSON.stringify(itemsToExport, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `omnicrawl_dataset_${Date.now()}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          appendLog('Dataset JSON berhasil diunduh ke komputer Anda.', 'success');
+        }
+      } catch (e) {
+        if (e.name !== 'AbortError') appendLog(`Gagal menyimpan: ${e.message}`, 'error');
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadFromLocalStorage();
+      fetchStatus();
+    });
+  </script>
+</body>
+</html>
